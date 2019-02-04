@@ -11,6 +11,7 @@
 #include "WiFiManager.h" 
 #include <WiFiClientSecure.h>
 #include <MQTTClient.h>   //you need to install this library: https://github.com/256dpi/arduino-mqtt
+#include "Config.h"
 
 const uint16_t PixelCount = 12; // make sure to set this to the number of pixels in your strip
 const uint8_t PixelPin = 12;  // make sure to set this to the correct pin, ignored for Esp8266
