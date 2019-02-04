@@ -1,4 +1,4 @@
-// NeoPixelFunFadeInOut
+// NeoPixelBus-WiFiManager-AWS
 // This example will randomly pick a color and fade all pixels to that color, then
 // it will fade them to black and restart over
 // 
