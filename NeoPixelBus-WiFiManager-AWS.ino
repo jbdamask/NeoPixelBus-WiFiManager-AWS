@@ -33,11 +33,11 @@ struct MyAnimationState
 };
 
 /* Animations ----*/
-unsigned long patternInterval = 50 ; // time between steps in the pattern
+unsigned long patternInterval = 85 ; // time between steps in the pattern
 unsigned long lastUpdate = 0;
 // one entry per pixel to match the animation timing manager
 MyAnimationState animationState[AnimationChannels];
-unsigned long animationSpeed [] = { 50 } ; // speed for each animation (order counts!)
+unsigned long animationSpeed [] = { 85 } ; // speed for each animation (order counts!)
 // Colors for sparkle
 uint8_t myFavoriteColors[][3] = {{200,   0, 200},   // purple
                                  {200,   0,   0},   // red 
@@ -278,6 +278,7 @@ void loop()
       break;
     case 1:
       if(millis() - lastUpdate > patternInterval) { 
+        wipe();
         sparkle(3);
       }     
       break;
