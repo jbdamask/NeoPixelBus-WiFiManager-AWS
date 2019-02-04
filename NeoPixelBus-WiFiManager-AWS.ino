@@ -5,6 +5,9 @@
 // This example demonstrates the use of a single animation channel to animate all
 // the pixels at once.
 //
+// Note that I added a self-animated sparkle function. This doesn't use the build in NexPixelBus
+// animation code
+//
 //#include <NeoPixelBus.h>
 #include <NeoPixelBrightnessBus.h>
 #include <NeoPixelAnimator.h>
@@ -17,15 +20,8 @@ const uint16_t PixelCount = 12; // make sure to set this to the number of pixels
 const uint8_t PixelPin = 12;  // make sure to set this to the correct pin, ignored for Esp8266
 const uint8_t AnimationChannels = 1; // we only need one as all the pixels are animated at once
 
-//NeoPixelBus<NeoGrbFeature, Neo800KbpsMethod> strip(PixelCount, PixelPin);
 NeoPixelBrightnessBus<NeoGrbFeature, Neo800KbpsMethod> strip(PixelCount, PixelPin);
-// For Esp8266, the Pin is omitted and it uses GPIO3 due to DMA hardware use.  
-// There are other Esp8266 alternative methods that provide more pin options, but also have
-// other side effects.
-// for details see wiki linked here https://github.com/Makuna/NeoPixelBus/wiki/ESP8266-NeoMethods 
-
 NeoPixelAnimator animations(AnimationChannels); // NeoPixel animation management object
-
 boolean fadeToColor = true;  // general purpose variable used to store effect state
 
 // what is stored for state is specific to the need, in this case, the colors.
@@ -37,12 +33,11 @@ struct MyAnimationState
 };
 
 /* Animations ----*/
-unsigned long patternInterval = 20 ; // time between steps in the pattern
+unsigned long patternInterval = 50 ; // time between steps in the pattern
 unsigned long lastUpdate = 0;
 // one entry per pixel to match the animation timing manager
 MyAnimationState animationState[AnimationChannels];
 unsigned long animationSpeed [] = { 50 } ; // speed for each animation (order counts!)
-#define ANIMATIONS sizeof(animationSpeed) / sizeof(animationSpeed[0])
 // Colors for sparkle
 uint8_t myFavoriteColors[][3] = {{200,   0, 200},   // purple
                                  {200,   0,   0},   // red 
@@ -95,7 +90,8 @@ void BlendAnimUpdate(const AnimationParam& param)
     }
 }
 
-void FadeInFadeOutRinseRepeat(float luminance)
+//void FadeInFadeOutRinseRepeat(float luminance)
+void FadeInFadeOutRinseRepeat(RgbColor myColor)
 {
     if (fadeToColor)
     {
@@ -103,7 +99,8 @@ void FadeInFadeOutRinseRepeat(float luminance)
         // we use HslColor object as it allows us to easily pick a hue
         // with the same saturation and luminance so the colors picked
         // will have similiar overall brightness
-        RgbColor target = HslColor(random(360) / 360.0f, 1.0f, luminance);
+        //RgbColor target = HslColor(random(360) / 360.0f, 1.0f, luminance);
+        RgbColor target = HslColor(myColor);
         uint16_t time = random(800, 2000);
 
         animationState[0].StartingColor = strip.GetPixelColor(0);
@@ -209,6 +206,12 @@ void sparkle(uint8_t howmany) {
   lastUpdate = millis();
 }
 
+// clear all LEDs
+void wipe(){
+   for(int i=0;i<=PixelCount;i++){
+     strip.SetPixelColor(i, RgbColor(0,0,0));
+   }
+}
 
 void setup()
 {
@@ -241,9 +244,10 @@ void setup()
 
 void loop()
 {
+  static char payload[512];
+  static int animationCounter = 0;
   static int animationTimer = 0;
   int nextAnimation = 5000; // Change animation every 5 seconds
-  static bool ab = true;
   
   if(!client.connected()){
     connect();
@@ -252,32 +256,43 @@ void loop()
 
 
   if(millis() - animationTimer > nextAnimation){
-    ab = !ab;
+    animationCounter = (animationCounter == 2) ? 0 : ++animationCounter;
     animationTimer = millis();
-    client.publish(publishTopic, "Animation changed");
+    wipe();
+    sprintf(payload,"Animation changed : %d",animationCounter);
+    client.publish(publishTopic, payload);
   }
 
-  if(ab){
-    if (animations.IsAnimating())
-    {
-        // the normal loop just needs these two to run the active animations
-        animations.UpdateAnimations();
-        strip.Show();
-    }
-    else
-    {
-        // no animation runnning, start some 
-        //
-        FadeInFadeOutRinseRepeat(0.2f); // 0.0 = black, 0.25 is normal, 0.5 is bright
-    }    
-  }else{
-    // Update animation frame
-    if(millis() - lastUpdate > patternInterval) { 
-      sparkle(3);
-    }
+  switch (animationCounter){
+    case 0:
+        if (animations.IsAnimating())
+        {
+            // the normal loop just needs these two to run the active animations
+            animations.UpdateAnimations();
+            strip.Show();
+        }
+        else
+        {
+            FadeInFadeOutRinseRepeat(RgbColor(0,127,127));
+        }
+      break;
+    case 1:
+      if(millis() - lastUpdate > patternInterval) { 
+        sparkle(3);
+      }     
+      break;
+    case 2:
+        if (animations.IsAnimating())
+        {
+            // the normal loop just needs these two to run the active animations
+            animations.UpdateAnimations();
+            strip.Show();
+        }
+        else
+        {
+            FadeInFadeOutRinseRepeat(RgbColor(255,0,0));
+        }       
+      break;
   }
-
-
-
 
 }
